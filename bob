@@ -1,0 +1,234 @@
+
+## Importing ## 
+import streamlit as st
+import pandas as pd
+import numpy as np
+import plotly as p
+import openpyxl
+import sqlite3
+import pydeck as pdk
+from streamlit_echarts import st_echarts
+
+def APPLICATION():
+## Declarations ##
+  FILTERSONE = []
+  connection = sqlite3.connect("victoria_crash_statistics.db")
+  cursor = connection.cursor()
+  COLUMNS = []
+  COLUMNSDIST = []
+  VARTWENTY = []
+  FILTERS = []
+  FITLERS = []
+  FULL = ""
+  NUM = 0
+  TABLE = 'main'
+  sql_command = """PRAGMA table_info('{TABLE}')""".format(TABLE = TABLE)
+  number = 0
+  VARNAME = []
+  VARTWENTY = []
+  ONE = []
+  TWO = []
+  NEWNUM = 0
+  TIMEONE = []
+  TIMETWO = []
+  TIMETHREE = []
+  TIMEFOUR = []
+  X = ""
+  UNIQUE = []
+  UniqueCount = 0
+  Entity = []
+  TIME = []
+  ArrayThree = []
+  ArrayFour = []
+  X = "NO_Persons"
+  VALUES = []
+  
+  
+## FUNCTIONS ##
+  def FIL(NAME,LABEL):
+      SPLIT = NAME
+      VALUESTWO = ""
+      for i in range(0,len(SPLIT)):
+        
+           if SPLIT[i] != len(SPLIT):
+               if NAME is not None and NAME != [] and NAME != '[]' and '[]' not in NAME and '=' not in NAME:
+                 VALUESTWO =  "{B} = '{A}' or ".format(A = SPLIT[i], B = LABEL) + VALUESTWO
+          # else:
+                #if NAME is not None and NAME != [] and NAME != '[]' and '[]' not in NAME and '=' not in NAME:
+               #   VALUESTWO =  " or {B} = '{A}' ".format(A = SPLIT[i], B = LABEL) + VALUESTWO
+             
+      if VALUESTWO is not None and VALUESTWO != '[]' and VALUESTWO != "":
+        VALUESTWO = VALUESTWO[:-4]
+        VALUESTWO = "(" + VALUESTWO + ")"
+        VALUESTWO = " and " + VALUESTWO 
+        FITLERS.append(VALUESTWO)   
+      return VALUESTWO
+
+
+  def DEFINE(NAME,arrays):
+       VALUES = []
+       for i in arrays:
+          VALUES.append(i)
+       OK = st.sidebar.multiselect(NAME, (VALUES) )
+       return OK
+
+  def stripping(VALUE):
+      VALUE = VALUE.replace('[', '').replace(']','').replace('(', '').replace(')','').replace("'","")
+      return VALUE
+
+  def smallstripping(VALUE):
+      VALUE = VALUE.replace("''","'")
+    
+  def STRIP(FULL):
+      FULL = FULL + i[:-4].replace('[', '').replace(']','').replace('(', '').replace(')','')
+      FULL = FULL.replace(',,', ',')
+      FULL = FULL.replace('"','').replace("''","'")
+      FULL = FULL.replace("','","'")
+      FULL = FULL.replace(",","")    
+
+
+
+ 
+ 
+## CODE ##
+  cursor.execute(sql_command)
+  result = cursor.fetchall()
+
+  for i in result:
+   COLUMNS.append(i[1])
+
+
+
+  NUM = 0
+  for i in COLUMNS:
+     sql_command = """SELECT Distinct({COLUMNS}) from {TABLE}"""
+     cursor.execute(sql_command.format(COLUMNS = i,TABLE = TABLE))
+     result = cursor.fetchall()
+     COLUMNSDIST.append([])
+     for K in result:
+       COLUMNSDIST[NUM].append(str(K))
+     NUM = NUM + 1
+     
+  XFILTER = DEFINE("XFILTER",COLUMNS)
+  if XFILTER is not None and XFILTER != "" and XFILTER != []:
+    X = str(XFILTER)
+    XSELECT = "GROUP BY " + str(XFILTER)
+    XSELECT = stripping(XSELECT)
+    X = stripping(X)
+    XSEL = str(XFILTER) + ","
+    XSEL = stripping(XSEL)
+  else:
+    XSELECT = ""
+    XSELECT = XSELECT.replace("," , "")
+    XSEL = ""
+    XSEL = stripping(XSEL)   
+     
+  TimeSlider = st.sidebar.slider("Time", 1900, 2020, (1900,2020), 1)
+  st.write(TimeSlider[0])
+  st.write(TimeSlider[1])
+  st.sidebar.write("FILTERS")
+  for i in range (0,len(COLUMNSDIST)):
+
+   VARTWENTY.append([])
+   for W in COLUMNSDIST[i][0:20]:
+       W = str(W).replace('(',"").replace(')',"").replace(']',"").replace('[',"")
+       W = W.replace('"','')
+       VARTWENTY[i].append(W)
+  for i in VARTWENTY:
+      VARNAME.append([])
+
+  for i in VARTWENTY:
+      VARNAME[number] = DEFINE(str(COLUMNS[number]),i)
+      FIL(VARNAME[number],str(COLUMNS[number]))
+      number = number + 1
+      if number == len(VARTWENTY):
+          number = 0
+   
+ 
+
+  for i in FITLERS:
+      if '[None]' not in i:
+       if NEWNUM != len(FITLERS):
+        FULL = FULL + i.replace('[', '').replace(']','').replace(',,', ',')
+        FULL = FULL.replace(',,', ',')
+        FULL = FULL.replace('"','')
+        FULL = FULL.replace("''","'")
+        FULL = FULL.replace("','","'")
+        FULL = FULL.replace(",","")
+      else:
+        FULL = FULL + i.replace('[', '').replace(']','')
+        FULL = FULL.replace(',,', ',')
+        FULL = FULL.replace('"','').replace("''","'")
+        FULL = FULL.replace("','","'")
+        FULL = FULL.replace(",","")
+      NEWNUM = NEWNUM + 1
+                        
+
+  measure = st.sidebar.radio("measure", ("count", "avg","max","min","None"))
+
+  VALUESS = "(" + "'Accident_No'" + ")"
+ 
+
+  
+  sql_command = """ SELECT DISTINCT {X} from main group by AccidentDate"""
+  cursor.execute(sql_command.format(X = X))
+  result = cursor.fetchall()
+
+  for i in result:
+    try:
+     UNIQUE.append(i)
+     UniqueCount = UniqueCount + 1
+    except:
+      print("Fail")
+  for W in range(0,len(UNIQUE)):
+      ArrayThree.append(str(UNIQUE[W]).replace("(","").replace(")","").replace(",",""))
+    
+
+# TIme
+  sql_command = """ SELECT DISTINCT substr(AccidentDate,1,4) from main WHERE AccidentDate BETWEEN {TimeOne} and {TimeTwo} group by substr(AccidentDate,1,4)"""
+  cursor.execute(sql_command.format(TimeOne = TimeSlider[0], TimeTwo = TimeSlider[1]))
+  result = cursor.fetchall()
+  for i in result:
+    try:
+     TIME.append(i)
+    except:
+        print("Fail")
+    
+ 
+    
+
+  for W in range(0,len(TIME)):
+      ArrayFour.append(str(TIME[W]).replace("(","").replace(")","").replace(",",""))
+  print(ArrayFour)
+  MERGE = pd.DataFrame(index = ArrayFour )
+
+
+  for i in range(0,len(UNIQUE)):
+    VALUES.append([])
+    for K in range(0,len(TIME)):
+     st.write("SELECT IFNULL(substr(AccidentDate,1,4),{YearTime}), IFNULL(count(Accident_No), '1') from main WHERE {X} = {SeverityName} and substr(AccidentDate,1,4) = {YearTime} {FULL}".format(X = X,SeverityName = ArrayThree[i], YearTime = ArrayFour[K],FULL = FULL))
+     sql_command = """ SELECT IFNULL(substr(AccidentDate,1,4),{YearTime}), IFNULL(count(Accident_No), '1') from main WHERE {X} = {SeverityName} and substr(AccidentDate,1,4) = {YearTime} {FULL}"""
+  
+     cursor.execute(sql_command.format(X = X,SeverityName = ArrayThree[i], YearTime = ArrayFour[K],FULL = FULL))
+     result = cursor.fetchall()
+     for W in result:
+       try:
+           VALUES[i].append(W[1])
+       except:
+          print("Fail")
+    MERGE[str(UNIQUE[i])] = pd.DataFrame(index = ArrayFour,data = VALUES[i])
+    MERGE[str(UNIQUE[i])].fillna(0)
+
+  st.write("SELECT IFNULL(substr(AccidentDate,1,4),{YearTime}), IFNULL(count(Accident_No), '1') from main WHERE {X} = {SeverityName} and substr(AccidentDate,1,4) = {YearTime} {FULL}".format(X = X,SeverityName = ArrayThree[i], YearTime = ArrayFour[K],FULL = FULL))
+  st.write(UNIQUE)
+  print(MERGE)
+  st.header("Victorian Car Crashes")
+  st.write("number of Accidents {X} ".format(X = X))
+  st.write("The Filters are {FULL}".format(FULL = FULL.replace("and"," ").replace("or", " ").replace("(","").replace(")","")))
+  st.line_chart(MERGE,width = 300,height = 300)
+  st.area_chart(MERGE,width = 300,height=300)
+  st.bar_chart(MERGE,width = 300,height=300)    
+
+ 
+APPLICATION()
+
